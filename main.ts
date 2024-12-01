@@ -22,6 +22,7 @@ try {
   throw new Error("Something went wrong...");
 }
 
+// Part One
 groupA.sort();
 groupB.sort();
 
@@ -34,4 +35,14 @@ for (let idx = 0; idx < groupA.length; idx++) {
   }
 }
 
-console.log(`The solution is ${sum}!`);
+console.log(`The part one solution is ${sum}!`);
+
+// Part Two
+let similarityScore = 0;
+for (let idx = 0; idx < groupA.length; idx++) {
+  const occursLen = (groupB.filter(x => x === groupA[idx])).length
+
+  similarityScore += (groupA[idx] * occursLen);
+}
+
+console.log(`The part two solution is ${similarityScore}!`);
