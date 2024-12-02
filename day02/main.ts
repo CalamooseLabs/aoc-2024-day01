@@ -1,24 +1,6 @@
-if (Deno.args.length < 1) {
-  throw new Error("Argument of file input is required");
-}
+import { getFileContent } from "#utils";
 
-const FileArg = Deno.args[0];
-
-const group: number[][] = [];
-try {
-  const decoder = new TextDecoder("utf-8");
-  const fileContents = Deno.readFileSync(FileArg);
-  const decodedContent = decoder.decode(fileContents);
-
-  const decodedLines = decodedContent.split("\n");
-  for (const line of decodedLines) {
-    const values = line.split(" ");
-    if (values.length === 1) continue;
-    group.push([...values.map((x) => parseInt(x))]);
-  }
-} catch (_e) {
-  throw new Error("Something went wrong...");
-}
+const group: number[][] = getFileContent(" ");
 
 const checkPattern = (arr: number[]): boolean => {
   let isDecreasing: boolean = false;

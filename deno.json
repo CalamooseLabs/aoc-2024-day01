@@ -1,0 +1,12 @@
+{
+  "name": "@calamooselabs/advent-of-code-2024",
+  "tasks": {
+    "start": "deno run --allow-run --allow-read main.ts",
+    "newDay": "mkdir day$(date +%d)  && touch day$(date +%d)/input.txt && touch day$(date +%d)/main.ts"
+  },
+  "imports": {
+    "#utils": "./utils/mod.ts"
+  },
+  "exports": {
+  }
+}
