@@ -138,7 +138,6 @@ We hope you use Deno for Advent of Code 2024 for a chance to win some exclusive
 prizes! Also, keep an eye on our social media channels for when we announce the
 mysterious 20 day sticker prize!
 
-
 <p align="right">
   <br />
   <br />
