@@ -24,3 +24,22 @@ export const getFileContent = (delim: string): number[][] => {
 
   return lines;
 };
+
+export const getRawFileContent = (): string => {
+  if (Deno.args.length < 1) {
+    throw new Error("Argument of file input is required");
+  }
+
+  const FileArg = Deno.args[0];
+
+  let decodedContent: string;
+  try {
+    const decoder = new TextDecoder("utf-8");
+    const fileContents = Deno.readFileSync(FileArg);
+    decodedContent = decoder.decode(fileContents);
+  } catch (_e) {
+    throw new Error("Something went wrong while reading...");
+  }
+
+  return decodedContent;
+};
