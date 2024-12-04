@@ -16,7 +16,7 @@ const command = new Deno.Command(Deno.execPath(), {
 const { code, stdout } = command.outputSync();
 
 if (code !== 0) {
-  throw new Error("Something went wrong...");
+  throw new Error("Something went wrong in the day's code...");
 }
 
 console.log(new TextDecoder().decode(stdout));

@@ -22,7 +22,10 @@ re?.forEach((match) => {
   if (match === "do()") isEnabled = true;
 
   if (match.includes("mul")) {
-    if (isEnabled) partTwo += parseInt(match.match(/mul\((\d+),(\d+)\)/)![1]) * parseInt(match.match(/mul\((\d+),(\d+)\)/)![2]);
+    if (isEnabled) {
+      partTwo += parseInt(match.match(/mul\((\d+),(\d+)\)/)![1]) *
+        parseInt(match.match(/mul\((\d+),(\d+)\)/)![2]);
+    }
   }
 });
 
