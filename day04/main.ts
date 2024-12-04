@@ -40,12 +40,12 @@ const recursiveWordCount = (
     ? 1
     : 0;
 
-    // output[row][col] = letter;
-    return recursiveWordCount(
-      row + rowModifier,
-      col + colModifier,
-      lettersRemaining.slice(1),
-      direction,
+  // output[row][col] = letter;
+  return recursiveWordCount(
+    row + rowModifier,
+    col + colModifier,
+    lettersRemaining.slice(1),
+    direction,
   );
 };
 
@@ -120,7 +120,11 @@ lines.forEach((line, rowIndex) => {
           recursiveWordCount(rowIndex, colIndex - 2, crosswordSearch, "NE") ||
           recursiveWordCount(rowIndex - 2, colIndex, crosswordSearch, "SW")
         ) {
-          if (!usedX.some((path) => path.every((coord) => currentPath.includes(coord)))) {
+          if (
+            !usedX.some((path) =>
+              path.every((coord) => currentPath.includes(coord))
+            )
+          ) {
             usedX.push(currentPath);
             crosswordCount++;
           }
@@ -146,8 +150,12 @@ lines.forEach((line, rowIndex) => {
         if (
           recursiveWordCount(rowIndex - 2, colIndex, crosswordSearch, "SE") ||
           recursiveWordCount(rowIndex, colIndex + 2, crosswordSearch, "NW")
-        ) { 
-          if (!usedX.some((path) => path.every((coord) => currentPath.includes(coord)))) {
+        ) {
+          if (
+            !usedX.some((path) =>
+              path.every((coord) => currentPath.includes(coord))
+            )
+          ) {
             usedX.push(currentPath);
             crosswordCount++;
           }
@@ -174,7 +182,11 @@ lines.forEach((line, rowIndex) => {
           recursiveWordCount(rowIndex + 2, colIndex, crosswordSearch, "NW") ||
           recursiveWordCount(rowIndex, colIndex - 2, crosswordSearch, "SE")
         ) {
-          if (!usedX.some((path) => path.every((coord) => currentPath.includes(coord)))) {
+          if (
+            !usedX.some((path) =>
+              path.every((coord) => currentPath.includes(coord))
+            )
+          ) {
             usedX.push(currentPath);
             crosswordCount++;
           }
@@ -201,7 +213,11 @@ lines.forEach((line, rowIndex) => {
           recursiveWordCount(rowIndex, colIndex + 2, crosswordSearch, "SW") ||
           recursiveWordCount(rowIndex + 2, colIndex, crosswordSearch, "NE")
         ) {
-          if (!usedX.some((path) => path.every((coord) => currentPath.includes(coord)))) {
+          if (
+            !usedX.some((path) =>
+              path.every((coord) => currentPath.includes(coord))
+            )
+          ) {
             usedX.push(currentPath);
             crosswordCount++;
           }
