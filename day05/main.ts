@@ -39,7 +39,7 @@ for (const line of lines) {
 }
 
 let sum: number = 0;
-let incorrectUpdates: string[][] = [];
+const incorrectUpdates: string[][] = [];
 
 updates.forEach((update) => {
   let isValid: boolean = true;
