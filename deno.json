@@ -5,7 +5,7 @@
       "command": "deno run --allow-run --allow-read main.ts",
       "description": "Run the day's script, with the day as an argument"
     },
-    "newDay": "mkdir day$(date +%d)  && touch day$(date +%d)/input.txt && touch day$(date +%d)/main.ts"
+    "newDay": "mkdir day$(date +%d)  && touch day$(date +%d)/input.txt && touch day$(date +%d)/main.ts && echo '** View raw markdown for proper formatting **\n\n' > day$(date +%d)/README.md"
   },
   "imports": {
     "#utils": "./utils/mod.ts"
