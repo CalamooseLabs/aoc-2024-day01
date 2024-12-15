@@ -164,6 +164,15 @@ const widenGrid = (grid: string[][]): string[][] => {
   return wideGrid;
 };
 
+interface Updates {
+  [key: string]: {
+    position: Position;
+    newIcon: string;
+  };
+}
+
+let gridToUpdate: Updates = {};
+
 const wideGrid = widenGrid(originalGrid);
 
 const checkBoxMoveWide = (
@@ -318,16 +327,34 @@ const checkBoxMoveWide = (
   }
 
   if (canMove) {
-    wideGrid[currentBox.leftSide.position.row][
-      currentBox.leftSide.position.col
-    ] = OPEN;
-    wideGrid[currentBox.rightSide.position.row][
-      currentBox.rightSide.position.col
-    ] = OPEN;
-    wideGrid[newBox.leftSide.position.row][newBox.leftSide.position.col] =
-      BOX_LEFT;
-    wideGrid[newBox.rightSide.position.row][newBox.rightSide.position.col] =
-      BOX_RIGHT;
+    let gridKey = `${currentBox.leftSide.position.row}-${currentBox.leftSide.position.col}`;
+
+    if (gridToUpdate[gridKey] === undefined) {
+      gridToUpdate[gridKey] = {
+        position: currentBox.leftSide.position,
+        newIcon: OPEN,
+      };
+    }
+
+    gridKey = `${currentBox.rightSide.position.row}-${currentBox.rightSide.position.col}`;
+    if (gridToUpdate[gridKey] === undefined) {
+      gridToUpdate[gridKey] = {
+        position: currentBox.rightSide.position,
+        newIcon: OPEN,
+      };
+    }
+
+    gridKey = `${newBox.leftSide.position.row}-${newBox.leftSide.position.col}`;
+    gridToUpdate[gridKey] = {
+      position: newBox.leftSide.position,
+      newIcon: BOX_LEFT,
+    };
+
+    gridKey = `${newBox.rightSide.position.row}-${newBox.rightSide.position.col}`;
+    gridToUpdate[gridKey] = {
+      position: newBox.rightSide.position,
+      newIcon: BOX_RIGHT,
+    };
   }
 
   return canMove;
@@ -342,7 +369,7 @@ const RobotWide: Robot = {
   position: { row: StartingRowWide, col: StartingColWide },
 };
 
-const moveRobotWide = (direction: Direction) => {
+const moveRobotWide = (direction: Direction): boolean => {
   const rowModifier = direction === "^" ? -1 : direction === "v" ? 1 : 0;
   const colModifier = direction === "<" ? -1 : direction === ">" ? 1 : 0;
 
@@ -351,30 +378,60 @@ const moveRobotWide = (direction: Direction) => {
     col: RobotWide.position.col + colModifier,
   };
 
-  if (newPosition.row < 0 || newPosition.row >= wideGrid.length) return;
+  if (newPosition.row < 0 || newPosition.row >= wideGrid.length) return false;
   if (
     newPosition.col < 0 || newPosition.col >= wideGrid[newPosition.row].length
-  ) return;
-  if (wideGrid[newPosition.row][newPosition.col] === WALL) return;
+  ) return false;
+  if (wideGrid[newPosition.row][newPosition.col] === WALL) return false;
 
   if (
     wideGrid[newPosition.row][newPosition.col] === BOX_LEFT ||
     wideGrid[newPosition.row][newPosition.col] === BOX_RIGHT
   ) {
     if (checkBoxMoveWide(newPosition, direction)) {
-      wideGrid[newPosition.row][newPosition.col] = ROBOT;
-      wideGrid[RobotWide.position.row][RobotWide.position.col] = OPEN;
-      RobotWide.position = newPosition;
+      let gridKey = `${newPosition.row}-${newPosition.col}`;
+
+      gridToUpdate[gridKey] = {
+        position: newPosition,
+        newIcon: ROBOT,
+      };
+
+      gridKey = `${RobotWide.position.row}-${RobotWide.position.col}`;
+      if (gridToUpdate[gridKey] === undefined) {
+        gridToUpdate[gridKey] = {
+          position: RobotWide.position,
+          newIcon: OPEN,
+        };
+      }
+
       return true;
     }
   } else if (wideGrid[newPosition.row][newPosition.col] === OPEN) {
-    wideGrid[newPosition.row][newPosition.col] = ROBOT;
-    wideGrid[RobotWide.position.row][RobotWide.position.col] = OPEN;
-    RobotWide.position = newPosition;
+    let gridKey = `${newPosition.row}-${newPosition.col}`;
+
+    gridToUpdate[gridKey] = {
+      position: newPosition,
+      newIcon: ROBOT,
+    };
+
+    gridKey = `${RobotWide.position.row}-${RobotWide.position.col}`;
+    if (gridToUpdate[gridKey] === undefined) {
+      gridToUpdate[gridKey] = {
+        position: RobotWide.position,
+        newIcon: OPEN,
+      };
+    }
+
     return true;
   }
 
   return false;
+};
+
+const updateWideGrid = () => {
+  for (const update of Object.values(gridToUpdate)) {
+    wideGrid[update.position.row][update.position.col] = update.newIcon;
+  }
 };
 
 const calculateBoxesGPSWide = (): number => {
@@ -391,22 +448,41 @@ const calculateBoxesGPSWide = (): number => {
   return GPSSum;
 };
 
-// console.log("--------------------------------");
-// console.log("Initial Grid");
-// console.log(wideGrid.map((row) => row.join("")).join("\n"));
-// console.log("--------------------------------");
+const DEBUG = false;
 
-// console.log();
+if (DEBUG) {
+  console.log("--------------------------------");
+  console.log("Initial Grid");
+  console.log(wideGrid.map((row) => row.join("")).join("\n"));
+  console.log("--------------------------------");
+
+  console.log();
+}
 
 for (const move of moves) {
-  moveRobotWide(move);
+  gridToUpdate = {};
+  const toUpdate = moveRobotWide(move);
 
-  // console.log("--------------------------------");
-  // console.log(`Move ${move}`);
-  // console.log(wideGrid.map((row) => row.join("")).join("\n"));
-  // console.log("--------------------------------");
-  // console.log();
+  if (toUpdate) {
+    const rowModifier = move === "^" ? -1 : move === "v" ? 1 : 0;
+    const colModifier = move === "<" ? -1 : move === ">" ? 1 : 0;
+
+    updateWideGrid();
+    RobotWide.position = {
+      row: RobotWide.position.row + rowModifier,
+      col: RobotWide.position.col + colModifier,
+    };
+  }
+
+  if (DEBUG) {
+  console.log("--------------------------------");
+  console.log(`Move ${move}`);
+  console.log(wideGrid.map((row) => row.join("")).join("\n"));
+  console.log("--------------------------------");
+    console.log();
+  }
 }
 
 // 1521453
+// console.log(wideGrid.map((row) => row.join("")).join("\n"));
 console.log(`The answer to part two is ${calculateBoxesGPSWide()}!`);
