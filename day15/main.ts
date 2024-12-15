@@ -293,8 +293,7 @@ const checkBoxMoveWide = (
       if (isSameBox) {
         canMove = checkBoxMoveWide(newBox.leftSide.position, direction);
       } else {
-        canMove =
-          checkBoxMoveWide(newBox.leftSide.position, direction) &&
+        canMove = checkBoxMoveWide(newBox.leftSide.position, direction) &&
           checkBoxMoveWide(newBox.rightSide.position, direction);
       }
     } else if (isLeftBox && isRightOpen) {
@@ -327,7 +326,8 @@ const checkBoxMoveWide = (
   }
 
   if (canMove) {
-    let gridKey = `${currentBox.leftSide.position.row}-${currentBox.leftSide.position.col}`;
+    let gridKey =
+      `${currentBox.leftSide.position.row}-${currentBox.leftSide.position.col}`;
 
     if (gridToUpdate[gridKey] === undefined) {
       gridToUpdate[gridKey] = {
@@ -336,7 +336,8 @@ const checkBoxMoveWide = (
       };
     }
 
-    gridKey = `${currentBox.rightSide.position.row}-${currentBox.rightSide.position.col}`;
+    gridKey =
+      `${currentBox.rightSide.position.row}-${currentBox.rightSide.position.col}`;
     if (gridToUpdate[gridKey] === undefined) {
       gridToUpdate[gridKey] = {
         position: currentBox.rightSide.position,
@@ -350,7 +351,8 @@ const checkBoxMoveWide = (
       newIcon: BOX_LEFT,
     };
 
-    gridKey = `${newBox.rightSide.position.row}-${newBox.rightSide.position.col}`;
+    gridKey =
+      `${newBox.rightSide.position.row}-${newBox.rightSide.position.col}`;
     gridToUpdate[gridKey] = {
       position: newBox.rightSide.position,
       newIcon: BOX_RIGHT,
@@ -475,10 +477,10 @@ for (const move of moves) {
   }
 
   if (DEBUG) {
-  console.log("--------------------------------");
-  console.log(`Move ${move}`);
-  console.log(wideGrid.map((row) => row.join("")).join("\n"));
-  console.log("--------------------------------");
+    console.log("--------------------------------");
+    console.log(`Move ${move}`);
+    console.log(wideGrid.map((row) => row.join("")).join("\n"));
+    console.log("--------------------------------");
     console.log();
   }
 }
