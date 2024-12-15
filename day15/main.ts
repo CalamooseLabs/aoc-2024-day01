@@ -485,6 +485,4 @@ for (const move of moves) {
   }
 }
 
-// 1521453
-// console.log(wideGrid.map((row) => row.join("")).join("\n"));
 console.log(`The answer to part two is ${calculateBoxesGPSWide()}!`);
