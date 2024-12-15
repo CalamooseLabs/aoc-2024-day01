@@ -43,7 +43,7 @@ const Robot: Robot = {
   position: { row: StartingRow, col: StartingCol },
 };
 
-const checkBoxMove = (position: Position, direction: Direction): boolean => {
+const checkBoxMove = (position: Position, direction: Direction) => {
   const rowModifier = direction === "^" ? -1 : direction === "v" ? 1 : 0;
   const colModifier = direction === "<" ? -1 : direction === ">" ? 1 : 0;
 
@@ -258,38 +258,61 @@ const checkBoxMoveWide = (
     direction === "^" || direction === "v" || direction === "<" ? true : false;
   const checkRight: boolean =
     direction === "^" || direction === "v" || direction === ">" ? true : false;
-  let preventBreak = false;
   let canMove = false;
 
-  if (checkLeft) {
-    if (
-      wideGrid[newBox.leftSide.position.row][newBox.leftSide.position.col] ===
-        BOX_LEFT ||
-      wideGrid[newBox.leftSide.position.row][newBox.leftSide.position.col] ===
-        BOX_RIGHT
-    ) {
+  if (checkLeft && checkRight) {
+    // Its up and down
+
+    const leftBox =
+      wideGrid[newBox.leftSide.position.row][newBox.leftSide.position.col];
+    const rightBox =
+      wideGrid[newBox.rightSide.position.row][newBox.rightSide.position.col];
+
+    const isLeftBox = leftBox === BOX_LEFT || leftBox === BOX_RIGHT;
+    const isRightBox = rightBox === BOX_LEFT || rightBox === BOX_RIGHT;
+    const isLeftOpen = leftBox === OPEN;
+    const isRightOpen = rightBox === OPEN;
+
+    // Situations are the following:
+    // 1. Left is a box and right is a box
+    // 2. Left is a box and right is open
+    // 3. Left is open and right is a box
+    // 4. Left is open and right is open
+    if (isLeftBox && isRightBox) {
+      const isSameBox = leftBox === BOX_LEFT && rightBox === BOX_RIGHT;
+
+      if (isSameBox) {
+        canMove = checkBoxMoveWide(newBox.leftSide.position, direction);
+      } else {
+        canMove =
+          checkBoxMoveWide(newBox.leftSide.position, direction) &&
+          checkBoxMoveWide(newBox.rightSide.position, direction);
+      }
+    } else if (isLeftBox && isRightOpen) {
       canMove = checkBoxMoveWide(newBox.leftSide.position, direction);
-      preventBreak = !canMove;
-    } else if (
-      wideGrid[newBox.leftSide.position.row][newBox.leftSide.position.col] ===
-        OPEN
-    ) {
+    } else if (isLeftOpen && isRightBox) {
+      canMove = checkBoxMoveWide(newBox.rightSide.position, direction);
+    } else if (isLeftOpen && isRightOpen) {
       canMove = true;
     }
-  }
+  } else if (checkLeft) {
+    const leftBox =
+      wideGrid[newBox.leftSide.position.row][newBox.leftSide.position.col];
 
-  if (checkRight && !preventBreak) {
     if (
-      wideGrid[newBox.rightSide.position.row][newBox.rightSide.position.col] ===
-        BOX_LEFT ||
-      wideGrid[newBox.rightSide.position.row][newBox.rightSide.position.col] ===
-        BOX_RIGHT
+      leftBox === BOX_RIGHT
     ) {
+      canMove = checkBoxMoveWide(newBox.leftSide.position, direction);
+    } else if (leftBox === OPEN) {
+      canMove = true;
+    }
+  } else if (checkRight) {
+    const rightBox =
+      wideGrid[newBox.rightSide.position.row][newBox.rightSide.position.col];
+
+    if (rightBox === BOX_LEFT) {
       canMove = checkBoxMoveWide(newBox.rightSide.position, direction);
-    } else if (
-      wideGrid[newBox.rightSide.position.row][newBox.rightSide.position.col] ===
-        OPEN
-    ) {
+    } else if (rightBox === OPEN) {
       canMove = true;
     }
   }
@@ -368,11 +391,22 @@ const calculateBoxesGPSWide = (): number => {
   return GPSSum;
 };
 
+// console.log("--------------------------------");
+// console.log("Initial Grid");
+// console.log(wideGrid.map((row) => row.join("")).join("\n"));
+// console.log("--------------------------------");
+
+// console.log();
+
 for (const move of moves) {
   moveRobotWide(move);
+
+  // console.log("--------------------------------");
+  // console.log(`Move ${move}`);
+  // console.log(wideGrid.map((row) => row.join("")).join("\n"));
+  // console.log("--------------------------------");
+  // console.log();
 }
 
-// between 1529621 and 1514113
-// 1523249
-console.log(wideGrid.map((row) => row.join("")).join("\n"));
+// 1521453
 console.log(`The answer to part two is ${calculateBoxesGPSWide()}!`);
