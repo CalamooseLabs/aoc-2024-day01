@@ -127,7 +127,7 @@ const minimumSolution = (program: number[]) => {
       }
     }
 
-    if (possibleNumbers.size === 0) return -1n;
+    if (possibleNumbers.size === 0) throw new Error("No possible numbers");
 
     attemptedNumbers = possibleNumbers;
   }
