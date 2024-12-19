@@ -26,12 +26,13 @@ const findDesigns = (
   }
 
   const possiblePatterns = towels.filter((towel) => currentPattern === towel);
-  let result: number = possiblePatterns.reduce((sum, _towel) => {
-    const [newPattern, ...newRemainingPattern] = remainingPattern.split("");
-    return sum +
-      findDesigns(newPattern, newRemainingPattern.join(""), memoization);
-  }, 0);
   const [newPattern, ...newRemainingPattern] = remainingPattern.split("");
+  let result: number = possiblePatterns.reduce(
+    (sum, _towel) =>
+      sum +
+      findDesigns(newPattern, newRemainingPattern.join(""), memoization),
+    0,
+  );
   result += findDesigns(
     currentPattern + newPattern,
     newRemainingPattern.join(""),
