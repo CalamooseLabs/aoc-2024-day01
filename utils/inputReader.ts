@@ -25,12 +25,12 @@ export const getFileContent = (delim: string): number[][] => {
   return lines;
 };
 
-export const getRawFileContent = (): string => {
-  if (Deno.args.length < 1) {
+export const getRawFileContent = (inputFile?: string): string => {
+  const FileArg = Deno.args.length > 0 ? Deno.args[0] : inputFile;
+
+  if (FileArg === undefined) {
     throw new Error("Argument of file input is required");
   }
-
-  const FileArg = Deno.args[0];
 
   let decodedContent: string;
   try {
