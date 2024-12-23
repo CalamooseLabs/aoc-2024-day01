@@ -1,3 +1,5 @@
+** View raw markdown for proper formatting **
+
 --- Day 23: LAN Party ---
 
 As The Historians wander around a secure area at Easter Bunny HQ, you come
