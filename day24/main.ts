@@ -1,190 +1,297 @@
 import { getRawFileContent } from "#utils";
 
-// Read and parse the input file containing gate configurations
-const input = getRawFileContent("input-test.txt");
-const lines = input.split("\n").filter((line) => line.length > 0);
+// Types and interfaces for the circuit components
+type BinaryValue = 0 | 1;
+type GateOperator = "AND" | "OR" | "XOR";
 
-// Define types for logic gate structure
-type LogicGate = {
+interface LogicGate {
   input1: string;
-  operator: string; // Can be "AND", "OR", or "XOR"
   input2: string;
-};
-
-// Maps to store the circuit state and configuration
-const gateDefinitions = new Map<string, LogicGate>(); // Maps output wire to its gate definition
-const knownWireValues = new Map<string, 0 | 1>(); // Stores known binary values for wires
-const pendingGates = new Map<string, string[]>(); // Gates waiting for input values to be determined
-
-// Regular expressions for parsing input lines
-const WIRE_VALUE_REGEX = /^([\w\d]+): ([01])\n?$/; // Matches lines like "x00: 1"
-const GATE_DEFINITION_REGEX = /^([\w\s]+) -> ([\w\s]+)\n?$/; // Matches lines like "x00 AND y00 -> z00"
-
-// Parse input lines to populate our circuit configuration
-for (const line of lines) {
-  // Try to match initial wire values
-  let match = line.match(WIRE_VALUE_REGEX);
-  if (match) {
-    const [_, wireName, value] = match;
-    knownWireValues.set(wireName, Number(value) as 0 | 1);
-  }
-
-  // Try to match gate definitions
-  match = line.match(GATE_DEFINITION_REGEX);
-  if (match) {
-    const [_, gateExpression, outputWire] = match;
-    const [input1, operator, input2] = gateExpression.split(" ");
-    pendingGates.set(outputWire, [input1, operator, input2]);
-    gateDefinitions.set(outputWire, { input1, operator, input2 });
-  }
+  operator: GateOperator;
 }
 
-// Evaluate a logic gate given its inputs and operation
-const evaluateGate = (
+interface CircuitState {
+  gateDefinitions: Map<string, LogicGate>;
+  knownWireValues: Map<string, BinaryValue>;
+  pendingGates: Map<string, [string, GateOperator, string]>;
+}
+
+// Regular expressions for parsing circuit definitions
+const PATTERNS = {
+  WIRE_VALUE: /^([\w\d]+): ([01])\n?$/, // Matches "x00: 1"
+  GATE_DEFINITION: /^([\w\s]+) -> ([\w\s]+)\n?$/, // Matches "x00 AND y00 -> z00"
+} as const;
+
+/**
+ * Parses the input file and initializes the circuit state
+ * @param input - Raw input string containing circuit definitions
+ * @returns Initialized CircuitState object
+ */
+function parseCircuitDefinitions(input: string): CircuitState {
+  const lines = input.split("\n").filter((line) => line.length > 0);
+  const circuitState: CircuitState = {
+    gateDefinitions: new Map(),
+    knownWireValues: new Map(),
+    pendingGates: new Map(),
+  };
+
+  for (const line of lines) {
+    // Parse initial wire values
+    let match = line.match(PATTERNS.WIRE_VALUE);
+    if (match) {
+      const [_, wireName, value] = match;
+      circuitState.knownWireValues.set(wireName, Number(value) as BinaryValue);
+      continue;
+    }
+
+    // Parse gate definitions
+    match = line.match(PATTERNS.GATE_DEFINITION);
+    if (match) {
+      const [_, gateExpression, outputWire] = match;
+      const [input1, operator, input2] = gateExpression.split(" ");
+
+      // Validate operator type at compile time
+      if (!isValidOperator(operator)) {
+        throw new Error(`Invalid operator: ${operator}`);
+      }
+
+      circuitState.pendingGates.set(outputWire, [input1, operator, input2]);
+      circuitState.gateDefinitions.set(outputWire, {
+        input1,
+        input2,
+        operator,
+      });
+    }
+  }
+
+  return circuitState;
+}
+
+/**
+ * Type guard to validate gate operators
+ */
+function isValidOperator(op: string): op is GateOperator {
+  return ["AND", "OR", "XOR"].includes(op);
+}
+
+/**
+ * Evaluates a logic gate with given inputs and operation
+ * @throws Error if input values are undefined or operation is invalid
+ */
+function evaluateGate(
   wireA: string,
   wireB: string,
-  operation: string,
-): 0 | 1 => {
+  operation: GateOperator,
+  knownWireValues: Map<string, BinaryValue>,
+): BinaryValue {
   const valueA = knownWireValues.get(wireA);
   const valueB = knownWireValues.get(wireB);
 
   if (valueA === undefined || valueB === undefined) {
-    throw new Error("Cannot evaluate gate: missing input values");
+    throw new Error(`Missing input values for gate: ${wireA}, ${wireB}`);
   }
 
-  let result: 0 | 1 = 0;
   switch (operation) {
-    case "OR":
-      result = valueA === 1 || valueB === 1 ? 1 : 0;
-      break;
-    case "XOR":
-      result = valueA !== valueB ? 1 : 0;
-      break;
     case "AND":
-      result = valueA === 1 && valueB === 1 ? 1 : 0;
-      break;
-    default:
-      throw new Error(`Invalid gate operation: ${operation}`);
+      return (valueA && valueB) ? 1 : 0;
+    case "OR":
+      return (valueA || valueB) ? 1 : 0;
+    case "XOR":
+      return valueA !== valueB ? 1 : 0;
   }
+}
 
-  return result;
-};
-
-// Find a gate in the circuit by its inputs and operation type
+/**
+ * Finds a gate in the circuit by its inputs and operation type
+ * Handles commutative operations (inputs can be in either order)
+ */
 function findGateByInputs(
   input1: string,
   input2: string,
-  operator: string,
+  operator: GateOperator,
+  gateDefinitions: Map<string, LogicGate>,
 ): string | undefined {
   for (const [outputWire, gate] of gateDefinitions) {
-    // Check both input orientations since AND/OR/XOR are commutative
-    if (
-      (gate.input1 === input1 && gate.input2 === input2 &&
-        gate.operator === operator) ||
-      (gate.input1 === input2 && gate.input2 === input1 &&
-        gate.operator === operator)
-    ) {
-      return outputWire;
-    }
+    if (gate.operator !== operator) continue;
+
+    // Check both input orientations since all operations are commutative
+    const matchesInputs = (gate.input1 === input1 && gate.input2 === input2) ||
+      (gate.input1 === input2 && gate.input2 === input1);
+
+    if (matchesInputs) return outputWire;
   }
   return undefined;
 }
 
-// Part 2: Analyze the binary adder structure to find incorrectly swapped wires
-function findSwappedWires(): string[] {
+/**
+ * Analyzes the binary adder structure to find incorrectly swapped wires
+ * Uses pattern matching to identify full adder components and detect misplaced connections
+ */
+function findSwappedWires(gateDefinitions: Map<string, LogicGate>): string[] {
   const swappedWires: string[] = [];
   let carryIn: string | null = null;
 
-  // Analyze each bit position in the adder (45-bit numbers)
-  for (let bitPosition = 0; bitPosition < 45; bitPosition++) {
-    const bitIndex = bitPosition.toString().padStart(2, "0");
+  // Analyze each bit position in the 45-bit adder
+  for (let pos = 0; pos < 45; pos++) {
+    const bitIndex = pos.toString().padStart(2, "0");
 
-    // Expected gate outputs for full adder circuit
-    let xorGate: string | undefined; // Mi: Xi XOR Yi (intermediate sum)
-    let andGate: string | undefined; // Ni: Xi AND Yi (carry generate)
-    let carryAndGate: string | undefined; // Ri: Ci-1 AND Mi (carry propagate)
-    let sumBit: string | undefined; // Zi: Ci-1 XOR Mi (final sum)
-    let carryOut: string | undefined; // Ci: Ri OR Ni (carry out)
+    // Find the expected full adder components for current bit
+    const components = {
+      xorGate: findGateByInputs(
+        `x${bitIndex}`,
+        `y${bitIndex}`,
+        "XOR",
+        gateDefinitions,
+      ),
+      andGate: findGateByInputs(
+        `x${bitIndex}`,
+        `y${bitIndex}`,
+        "AND",
+        gateDefinitions,
+      ),
+      carryAndGate: undefined as string | undefined,
+      sumBit: undefined as string | undefined,
+      carryOut: undefined as string | undefined,
+    };
 
-    // Find initial XOR and AND gates for current bit position
-    xorGate = findGateByInputs(`x${bitIndex}`, `y${bitIndex}`, "XOR");
-    andGate = findGateByInputs(`x${bitIndex}`, `y${bitIndex}`, "AND");
+    if (!components.xorGate || !components.andGate) continue;
 
-    if (!xorGate || !andGate) continue;
-
-    // Process carry logic for all bits except the first
+    // Process carry chain logic
     if (carryIn) {
-      carryAndGate = findGateByInputs(carryIn, xorGate, "AND");
+      components.carryAndGate = findGateByInputs(
+        carryIn,
+        components.xorGate,
+        "AND",
+        gateDefinitions,
+      );
 
-      // If carry AND gate not found, XOR and AND outputs might be swapped
-      if (!carryAndGate) {
-        [andGate, xorGate] = [xorGate, andGate];
-        swappedWires.push(xorGate, andGate);
-        carryAndGate = findGateByInputs(carryIn, xorGate, "AND");
+      // Detect and correct potential XOR/AND swap
+      if (!components.carryAndGate) {
+        [components.andGate, components.xorGate] = [
+          components.xorGate,
+          components.andGate,
+        ];
+        swappedWires.push(components.xorGate, components.andGate);
+        components.carryAndGate = findGateByInputs(
+          carryIn,
+          components.xorGate,
+          "AND",
+          gateDefinitions,
+        );
       }
 
-      sumBit = findGateByInputs(carryIn, xorGate, "XOR");
+      components.sumBit = findGateByInputs(
+        carryIn,
+        components.xorGate,
+        "XOR",
+        gateDefinitions,
+      );
 
-      if (!sumBit || !carryAndGate) continue;
+      if (!components.sumBit || !components.carryAndGate) continue;
 
-      // Check and correct misplaced sum bit wires
-      if (xorGate.startsWith("z")) {
-        [xorGate, sumBit] = [sumBit, xorGate];
-        swappedWires.push(xorGate, sumBit);
+      // Correct misplaced sum bit connections
+      if (components.xorGate.startsWith("z")) {
+        [components.xorGate, components.sumBit] = [
+          components.sumBit,
+          components.xorGate,
+        ];
+        swappedWires.push(components.xorGate, components.sumBit);
       }
-      if (andGate.startsWith("z")) {
-        [andGate, sumBit] = [sumBit, andGate];
-        swappedWires.push(andGate, sumBit);
+      if (components.andGate.startsWith("z")) {
+        [components.andGate, components.sumBit] = [
+          components.sumBit,
+          components.andGate,
+        ];
+        swappedWires.push(components.andGate, components.sumBit);
       }
-      if (carryAndGate.startsWith("z")) {
-        [carryAndGate, sumBit] = [sumBit, carryAndGate];
-        swappedWires.push(carryAndGate, sumBit);
+      if (components.carryAndGate.startsWith("z")) {
+        [components.carryAndGate, components.sumBit] = [
+          components.sumBit,
+          components.carryAndGate,
+        ];
+        swappedWires.push(components.carryAndGate, components.sumBit);
       }
 
-      carryOut = findGateByInputs(carryAndGate, andGate, "OR");
-      if (!carryOut) continue;
+      components.carryOut = findGateByInputs(
+        components.carryAndGate,
+        components.andGate,
+        "OR",
+        gateDefinitions,
+      );
+      if (!components.carryOut) continue;
+
+      // Fix incorrectly placed carry out wire
+      if (
+        components.carryOut.startsWith("z") && components.carryOut !== "z45"
+      ) {
+        [components.carryOut, components.sumBit] = [
+          components.sumBit,
+          components.carryOut,
+        ];
+        swappedWires.push(components.carryOut, components.sumBit);
+      }
     }
 
-    // Fix incorrectly placed carry out wire
-    if (carryOut?.startsWith("z") && carryOut !== "z45") {
-      [carryOut, sumBit] = [sumBit!, carryOut];
-      swappedWires.push(carryOut, sumBit);
-    }
-
-    // Prepare carry for next bit
-    carryIn = carryOut ?? andGate;
+    // Update carry for next bit
+    carryIn = components.carryOut ?? components.andGate;
   }
 
   return [...new Set(swappedWires)].sort();
 }
 
-// Part 1: Simulate the circuit until all wire values are determined
-while (pendingGates.size > 0) {
-  for (const [outputWire, gateInputs] of pendingGates) {
-    if (knownWireValues.has(outputWire)) {
-      pendingGates.delete(outputWire);
-      continue;
-    }
+/**
+ * Simulates the circuit until all wire values are determined
+ */
+function simulateCircuit(circuitState: CircuitState): void {
+  const { pendingGates, knownWireValues } = circuitState;
 
-    const [input1, operator, input2] = gateInputs;
+  while (pendingGates.size > 0) {
+    for (const [outputWire, [input1, operator, input2]] of pendingGates) {
+      // Skip if output wire already has a value
+      if (knownWireValues.has(outputWire)) {
+        pendingGates.delete(outputWire);
+        continue;
+      }
 
-    if (knownWireValues.has(input1) && knownWireValues.has(input2)) {
-      const gateOutput: 0 | 1 = evaluateGate(input1, input2, operator);
-      knownWireValues.set(outputWire, gateOutput);
-      pendingGates.delete(outputWire);
+      // Evaluate gate if both inputs are known
+      if (knownWireValues.has(input1) && knownWireValues.has(input2)) {
+        const gateOutput = evaluateGate(
+          input1,
+          input2,
+          operator as GateOperator,
+          knownWireValues,
+        );
+        knownWireValues.set(outputWire, gateOutput);
+        pendingGates.delete(outputWire);
+      }
     }
   }
 }
 
-// Extract final binary number from z-wires
-let resultBinary: string = "";
-[...knownWireValues.entries()].sort().forEach((entry) => {
-  if (entry[0][0] === "z") {
-    resultBinary = entry[1].toString() + resultBinary;
-  }
-});
+/**
+ * Main execution flow
+ */
+function main() {
+  // Initialize circuit from input file
+  const input = getRawFileContent("input-test.txt");
+  const circuitState = parseCircuitDefinitions(input);
 
-console.log(`The answer to part one is ${parseInt(resultBinary, 2)}!`);
+  // Part 1: Simulate circuit and get decimal output
+  simulateCircuit(circuitState);
 
-const swappedWires = findSwappedWires();
-console.log(`The answer to part two is ${swappedWires.join(",")}!`);
+  // Extract final binary number from z-wires
+  const resultBinary = Array.from(circuitState.knownWireValues.entries())
+    .filter(([wire]) => wire.startsWith("z"))
+    .sort()
+    .map(([_, value]) => value)
+    .reverse()
+    .join("");
+
+  console.log(`The answer to part one is ${parseInt(resultBinary, 2)}!`);
+
+  // Part 2: Find swapped wires in the binary adder
+  const swappedWires = findSwappedWires(circuitState.gateDefinitions);
+  console.log(`The answer to part two is ${swappedWires.join(",")}!`);
+}
+
+main();
